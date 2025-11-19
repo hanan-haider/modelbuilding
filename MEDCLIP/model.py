@@ -51,6 +51,86 @@ class BiomedCLIPTextCfg:
     output_tokens: bool = False
    
 
+   
+def _build_vision_tower(
+        embed_dim: int,
+        vision_cfg: CLIPVisionCfg,
+        quick_gelu: bool = False,
+        cast_dtype: Optional[torch.dtype] = None
+    ):
+    """
+    Build vision tower for BiomedCLIP.
+    
+    Reference: Zhang et al. "BiomedCLIP: a multimodal biomedical foundation model 
+    pretrained from fifteen million scientific image-text pairs" (2023)
+    Paper: https://arxiv.org/abs/2303.00915
+    
+    BiomedCLIP uses:
+    - ViT-B/16 initialized with ImageNet-pretrained weights (not random)
+    - Image resolution: 224x224 (found optimal for biomedical images)
+    - Patch dropout: 0.4 for regularization during pretraining
+    - Uses timm library for loading pretrained Vision Transformer
+    """
+    if isinstance(vision_cfg, dict):
+        vision_cfg = CLIPVisionCfg(**vision_cfg)
+
+    # Check if using timm model (BiomedCLIP approach)
+    if vision_cfg.timm_model_name:
+        # Use timm for Vision Transformer with optional ImageNet pretraining
+        visual = TimmModel(
+            model_name=vision_cfg.timm_model_name,
+            embed_dim=embed_dim,
+            image_size=vision_cfg.image_size,
+            pool=vision_cfg.timm_pool,
+            proj=vision_cfg.timm_proj,
+            proj_bias=vision_cfg.timm_proj_bias,
+            drop=vision_cfg.timm_drop,
+            drop_path=vision_cfg.timm_drop_path,
+            pretrained=vision_cfg.timm_model_pretrained,
+            output_tokens=vision_cfg.output_tokens,
+        )
+        return visual
+
+
+
+def _build_text_tower(
+        embed_dim: int,
+        text_cfg: CLIPTextCfg,
+        quick_gelu: bool = False,
+        cast_dtype: Optional[torch.dtype] = None,
+):
+    """
+    Build text tower for BiomedCLIP using BiomedBERT.
+    
+    Reference: Zhang et al. "BiomedCLIP: a multimodal biomedical foundation model 
+    pretrained from fifteen million scientific image-text pairs" (2023)
+    Paper: https://arxiv.org/abs/2303.00915
+    
+    BiomedCLIP uses PubMedBERT (domain-specific pretrained) instead of GPT-2.
+    The text encoder is initialized with pretrained weights, not from scratch.
+    """
+    if isinstance(text_cfg, dict):
+        text_cfg = CLIPTextCfg(**text_cfg)
+
+    # Check if we should use HuggingFace pretrained model (BiomedBERT)
+    if text_cfg.hf_model_name and text_cfg.hf_model_pretrained:
+        # Load pretrained BiomedBERT - this is the BiomedCLIP approach
+        # Use the HF-specific parameters
+        proj_type = text_cfg.hf_proj_type if hasattr(text_cfg, 'hf_proj_type') else text_cfg.proj
+        pooler_type = text_cfg.hf_pooler_type if hasattr(text_cfg, 'hf_pooler_type') else text_cfg.pooler_type
+        
+        text = HFTextEncoder(
+            model_name=text_cfg.hf_model_name,
+            output_dim=embed_dim,
+            proj_type=proj_type,
+            pooler_type=pooler_type,
+            pretrained=text_cfg.hf_model_pretrained,
+        )
+        return text
+
+
+
+
 
 def get_cast_dtype(precision: str):
     cast_dtype = None
