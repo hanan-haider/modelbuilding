@@ -70,7 +70,7 @@ def load_biomedclip_model(
             warnings.warn(f"File {model_path} is not a JIT archive. Loading as a state dict instead")
             jit = False
         state_dict = torch.load(model_path, map_location="cpu")
-        print(f"here is the state dict keys: {state_dict.keys()} ")
+        #print(f"here is the state dict keys: {state_dict.keys()} ")
 
     if not jit:
         # Build a non-jit model from the OpenAI jitted model state dict
