@@ -121,7 +121,7 @@ def build_model_from_biomedclip_state_dict(
         image_size=image_size,
     )
     print("\n BiomedCLIPVisionCfg object created.",vision_cfg,"\n")
-    text_cfg = CLIPTextCfg(
+    text_cfg =BiomedCLIPTextCfg(
         context_length=context_length,
         vocab_size=vocab_size,
         width=text_width,
