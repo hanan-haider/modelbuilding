@@ -26,9 +26,29 @@ class BiomedCLIPVisionCfg:
     timm_drop_path: Optional[float] = None
     output_tokens: bool = True            # output tokens for CLS embedding
 
+
     def __post_init__(self):
         print(f"BiomedCLIP Vision Config Initialized: layers={self.layers}, width={self.width}, patch_size={self.patch_size}, image_size={self.image_size}")
 
+
+
+@dataclass
+class BiomedCLIPTextCfg:
+    context_length: int = 512
+    vocab_size: int = 30522
+    width: int = 768
+    heads: int = 12
+    layers: int = 12
+    ls_init_value: Optional[float] = None  # layer scale initial value
+    hf_model_name: str = "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract"
+    hf_tokenizer_name: str = "microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract"
+    hf_model_pretrained: bool = True
+    proj: str = 'mlp'  # projection type
+    pooler_type: str = 'cls_last_hidden_state_pooler'
+    embed_cls: bool = False
+    pad_id: int = 0
+    output_tokens: bool = False
+   
 
 
 def get_cast_dtype(precision: str):
