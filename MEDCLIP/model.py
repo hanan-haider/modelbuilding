@@ -1,4 +1,34 @@
 import torch
+from dataclasses import dataclass
+from typing import Union, Tuple, Optional
+
+@dataclass
+class BiomedCLIPVisionCfg:
+    layers: int = 12                     # BiomedCLIP ViT-B has 12 transformer blocks
+    width: int = 768                     # embedding dimension
+    head_width: int = 64                 # attention head width
+    mlp_ratio: float = 4.0               # MLP expansion ratio
+    patch_size: int = 16                 # 16x16 patches
+    image_size: int = 224                # input image size
+    ls_init_value: Optional[float] = None
+    patch_dropout: float = 0.0           # BiomedCLIP typically disables patch dropout
+    input_patchnorm: bool = False        # no dual patchnorm
+    global_average_pool: bool = False    # CLS token used instead of global pooling
+    attentional_pool: bool = False       # no attentional pooling
+    n_queries: int = 256                 # default queries (unused here)
+    attn_pooler_heads: int = 8           # default attention heads for pooler
+    timm_model_name: str = 'vit_base_patch16_224'  # ViT-B/16
+    timm_model_pretrained: bool = False  # pretrained weights not used
+    timm_pool: str = ''                   # no extra pooling
+    timm_proj: str = 'linear'             # linear projection for output
+    timm_proj_bias: bool = False          # projection bias disabled
+    timm_drop: float = 0.0                # head dropout
+    timm_drop_path: Optional[float] = None
+    output_tokens: bool = True            # output tokens for CLS embedding
+
+    def __post_init__(self):
+        print(f"BiomedCLIP Vision Config Initialized: layers={self.layers}, width={self.width}, patch_size={self.patch_size}, image_size={self.image_size}")
+
 
 
 def get_cast_dtype(precision: str):
