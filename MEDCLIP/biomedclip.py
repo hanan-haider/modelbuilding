@@ -11,9 +11,22 @@ import torch
 #from .openai import load_openai_model
 
 
-_MODEL_CONFIG_PATHS = [Path(__file__).parent / f"model_configs/"]
-_MODEL_CONFIGS = {}  # directory (model_name: config) of model architecture configs
-_MODEL_CKPT_PATHS = {'ViT-L-14-336': Path(__file__).parent / "ckpt/ViT-L-14-336px.pt"}
+#_MODEL_CONFIG_PATHS = [Path(__file__).parent / f"model_configs/"]
+#_MODEL_CONFIGS = {}  # directory (model_name: config) of model architecture configs
+#_MODEL_CKPT_PATHS = {'ViT-L-14-336': Path(__file__).parent / "ckpt/ViT-L-14-336px.pt"}
+
+
+# Paths for configs and checkpoints
+_MODEL_CONFIG_PATHS = [
+    Path("/kaggle/input/biomedclip/pytorch/default/1/BiomedCLIP-PubMedBERT-ViT-B-16.json")
+]
+_MODEL_CONFIGS = {}
+_MODEL_CKPT_PATHS = {
+    "BiomedCLIP-PubMedBERT-ViT-B-16": Path(
+        "/kaggle/input/biomedclip/pytorch/default/1/open_clip_pytorch_model.bin"
+    )
+}
+
 
 
 def _natural_key(string_):
