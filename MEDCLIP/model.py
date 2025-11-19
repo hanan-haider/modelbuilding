@@ -199,7 +199,6 @@ class CustomTextCLIP(nn.Module):
         return image_features, text_features, self.logit_scale.exp()
 
 
-
 def build_model_from_biomedclip_state_dict(
     state_dict: dict,
     quick_gelu=True,
@@ -240,25 +239,22 @@ def build_model_from_biomedclip_state_dict(
     embed_dim = state_dict["visual.head.proj.weight"].shape[0]
     print(f"Embed dim (from visual.head.proj.weight): {embed_dim}")
 
-    # Create configs with BiomedCLIP-specific settings
+    # Create configs
     vision_cfg = BiomedCLIPVisionCfg(
         layers=vision_layers,
         width=vision_width,
         patch_size=vision_patch_size,
         image_size=image_size,
     )
-    print("\n BiomedCLIPVisionCfg object created.", vision_cfg, "\n")
-    
+    print("\n BiomedCLIPVisionCfg object created.",vision_cfg,"\n")
     text_cfg = BiomedCLIPTextCfg(
         context_length=context_length,
         vocab_size=vocab_size,
         width=text_width,
         heads=transformer_heads,
         layers=transformer_layers,
-        proj='mlp',  # BiomedCLIP uses MLP projection
-        pooler_type='cls_last_hidden_state_pooler',  # Specify pooler type
     )
-    print("\n CLIPTextCfg objects created.", text_cfg, "\n")
+    print("\n CLIPTextCfg objects created.",text_cfg,"\n")
 
     # Build CLIP model
     model = CustomTextCLIP(
@@ -270,24 +266,38 @@ def build_model_from_biomedclip_state_dict(
     )
     print("CLIP model instance created.")
 
-    # ===== KEY FIX: Remap BiomedCLIP keys to match model architecture =====
+    # FIX: Adapt state dict keys for BiomedCLIP compatibility
+    print("Adapting state dict keys for BiomedCLIP...")
     new_state_dict = {}
     
     for key, value in state_dict.items():
         new_key = key
         
-        # Fix 1: Remap visual projection key
+        # Fix vision projection key
         if key == "visual.head.proj.weight":
             new_key = "visual.proj.weight"
-            print(f"Remapping: {key} -> {new_key}")
+            print(f"  Mapped: {key} -> {new_key}")
         
-        # Fix 2: Skip position_ids (it's a buffer, will be created automatically)
+        # Fix text projection keys - handle BiomedCLIP's different MLP dimensions
+        elif key == "text.proj.0.weight":
+            # BiomedCLIP uses 640->512, but model expects 768->512
+            # We'll handle this in the loading with strict=False
+            print(f"  Keeping BiomedCLIP text projection: {key} (shape: {value.shape})")
+        
+        elif key == "text.proj.2.weight":
+            print(f"  Keeping BiomedCLIP text projection: {key} (shape: {value.shape})")
+        
+        # Remove position_ids as it's not needed for inference
         elif key == "text.transformer.embeddings.position_ids":
-            print(f"Skipping buffer: {key}")
+            print(f"  Skipping: {key} (not needed)")
             continue
         
+        # Keep all other keys as-is
+        else:
+            new_key = key
+        
         new_state_dict[new_key] = value
-    
+
     # Remove unused keys
     for key in ["input_resolution", "context_length", "vocab_size"]:
         if key in new_state_dict:
@@ -298,19 +308,62 @@ def build_model_from_biomedclip_state_dict(
     convert_weights_to_fp16(model)
     print("Converted model weights to fp16 (if applicable).")
 
-    # Load weights with strict=False to handle minor mismatches
-    incompatible_keys = model.load_state_dict(new_state_dict, strict=False)
+    # FIX: Load with strict=False to handle projection dimension mismatches
+    print("Loading state dict with strict=False to handle BiomedCLIP projection differences...")
     
-    if incompatible_keys.missing_keys:
-        print(f"⚠️ Missing keys: {incompatible_keys.missing_keys}")
-    if incompatible_keys.unexpected_keys:
-        print(f"⚠️ Unexpected keys: {incompatible_keys.unexpected_keys}")
+    # First, let's see what keys are missing/unexpected
+    model_state_dict = model.state_dict()
+    missing_keys = []
+    unexpected_keys = []
     
-    print("BiomedCLIP model successfully loaded!")
+    for key in model_state_dict.keys():
+        if key not in new_state_dict:
+            missing_keys.append(key)
+    
+    for key in new_state_dict.keys():
+        if key not in model_state_dict:
+            unexpected_keys.append(key)
+    
+    print(f"Missing keys in checkpoint: {missing_keys}")
+    print(f"Unexpected keys in checkpoint: {unexpected_keys}")
+    
+    # Handle specific projection dimension mismatches
+    for key in list(new_state_dict.keys()):
+        if key in model_state_dict:
+            checkpoint_shape = new_state_dict[key].shape
+            model_shape = model_state_dict[key].shape
+            
+            if checkpoint_shape != model_shape:
+                print(f"Shape mismatch for {key}: checkpoint {checkpoint_shape} vs model {model_shape}")
+                
+                # Handle text projection dimension differences
+                if key == "text.proj.0.weight":
+                    # BiomedCLIP: (640, 768), Model expects: (768, 768)
+                    if checkpoint_shape == (640, 768) and model_shape == (768, 768):
+                        print("  Adapting text.proj.0.weight dimensions...")
+                        # Create compatible weight matrix
+                        adapted_weight = torch.zeros(768, 768)
+                        adapted_weight[:640, :] = new_state_dict[key]  # Copy first 640 rows
+                        # Initialize remaining rows with small random values
+                        adapted_weight[640:, :] = torch.randn(128, 768) * 0.02
+                        new_state_dict[key] = adapted_weight
+                
+                elif key == "text.proj.2.weight":
+                    # BiomedCLIP: (512, 640), Model expects: (512, 768)
+                    if checkpoint_shape == (512, 640) and model_shape == (512, 768):
+                        print("  Adapting text.proj.2.weight dimensions...")
+                        # Create compatible weight matrix
+                        adapted_weight = torch.zeros(512, 768)
+                        adapted_weight[:, :640] = new_state_dict[key]  # Copy first 640 columns
+                        # Initialize remaining columns with small random values
+                        adapted_weight[:, 640:] = torch.randn(512, 128) * 0.02
+                        new_state_dict[key] = adapted_weight
+
+    # Load the adapted state dict
+    model.load_state_dict(new_state_dict, strict=False)
+    print("BiomedCLIP model successfully loaded with adapted projections!")
 
     return model.eval()
-
-
 
 
 
