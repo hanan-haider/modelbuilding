@@ -30,47 +30,47 @@ _MODEL_CKPT_PATHS = {
 
 
 def _natural_key(string_):
-    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_.lower())]
+    return [int(s) if s.isdigit() else s for s in re.split(r"(\d+)", string_.lower())]
 
 
 def _rescan_model_configs():
     global _MODEL_CONFIGS
-
-    config_ext = ('.json',)
+    config_ext = (".json",)
     config_files = []
+
     for config_path in _MODEL_CONFIG_PATHS:
         if config_path.is_file() and config_path.suffix in config_ext:
             config_files.append(config_path)
         elif config_path.is_dir():
             for ext in config_ext:
-                config_files.extend(config_path.glob(f'*{ext}'))
+                config_files.extend(config_path.glob(f"*{ext}"))
 
     for cf in config_files:
-        with open(cf, 'r') as f:
+        with open(cf, "r") as f:
             model_cfg = json.load(f)
-            if all(a in model_cfg for a in ('embed_dim', 'vision_cfg', 'text_cfg')):
+            if (
+                "model_cfg" in model_cfg
+                and all(a in model_cfg["model_cfg"] for a in ("embed_dim", "vision_cfg", "text_cfg"))
+            ):
                 _MODEL_CONFIGS[cf.stem] = model_cfg
 
-    _MODEL_CONFIGS = {k: v for k, v in sorted(_MODEL_CONFIGS.items(), key=lambda x: _natural_key(x[0]))}
+    _MODEL_CONFIGS = {
+        k: v for k, v in sorted(_MODEL_CONFIGS.items(), key=lambda x: _natural_key(x[0]))
+    }
 
 
-_rescan_model_configs()  # initial populate of model config registry
+_rescan_model_configs()
 
 
 def list_models():
-    """ enumerate available model architectures based on config files """
     return list(_MODEL_CONFIGS.keys())
 
 
-
 def get_model_config(model_name):
-    # print(_MODEL_CONFIGS)
     if model_name in _MODEL_CONFIGS:
-        # print('herehere')
-        return deepcopy(_MODEL_CONFIGS[model_name])
+        return deepcopy(_MODEL_CONFIGS[model_name]["model_cfg"])
     else:
         return None
-
 
 def load_state_dict(checkpoint_path: str, map_location='cpu'):
     checkpoint = torch.load(checkpoint_path, map_location=map_location)
@@ -117,8 +117,8 @@ def create_model(
     if isinstance(device, str):
         device = torch.device(device)
 
-    if pretrained and pretrained.lower() == 'openai':
-        logging.info(f'Loading pretrained {model_name} from OpenAI.')
+    if pretrained and pretrained.lower() == 'microsoft':
+        logging.info(f'Loading pretrained {model_name} from Hugging face.')
         model_cfg = model_cfg or get_model_config(model_name)
         # print(model_cfg['vision_cfg'])
         if model_cfg['vision_cfg']['image_size'] != img_size:
