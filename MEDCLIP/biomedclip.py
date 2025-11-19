@@ -161,7 +161,7 @@ def create_model(
             if jit:
                 model = torch.jit.script(model)
         else:
-            model = load_openai_model(
+            model = load_biomedclip_model(
                 model_name,
                 precision=precision,
                 device=device,
