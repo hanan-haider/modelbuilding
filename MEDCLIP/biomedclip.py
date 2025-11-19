@@ -108,6 +108,7 @@ def create_model(
         output_dict: Optional[bool] = None,
         require_pretrained: bool = False,
         adapter = False,
+        cache_dir: Optional[str] = None
 ):
 
     model_name = model_name.replace('/', '-')  # for callers using old naming with / in ViT names
