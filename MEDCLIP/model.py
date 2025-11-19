@@ -292,3 +292,32 @@ def build_model_from_biomedclip_state_dict(
     print("BiomedCLIP model successfully loaded!")
 
     return model.eval()
+
+
+
+def convert_weights_to_lp(model: nn.Module, dtype=torch.float16):
+    """Convert applicable model parameters to low-precision (bf16 or fp16)"""
+
+    def _convert_weights(l):
+        if isinstance(l, (nn.Conv1d, nn.Conv2d, nn.Linear)):
+            l.weight.data = l.weight.data.to(dtype)
+            if l.bias is not None:
+                l.bias.data = l.bias.data.to(dtype)
+
+        if isinstance(l, (nn.MultiheadAttention, Attention)):
+            for attr in [*[f"{s}_proj_weight" for s in ["in", "q", "k", "v"]], "in_proj_bias", "bias_k", "bias_v"]:
+                tensor = getattr(l, attr)
+                if tensor is not None:
+                    tensor.data = tensor.data.to(dtype)
+
+        for name in ["text_projection", "proj"]:
+            if hasattr(l, name):
+                attr = getattr(l, name)
+                if attr is not None:
+                    attr.data = attr.data.to(dtype)
+
+    model.apply(_convert_weights)
+
+
+convert_weights_to_fp16 = convert_weights_to_lp  # backwards compat
+
