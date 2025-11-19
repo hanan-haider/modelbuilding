@@ -126,7 +126,7 @@ def create_model(
             model_cfg['vision_cfg']['image_size'] = img_size
             cast_dtype = get_cast_dtype(precision)
 
-            model_pre = load_openai_model(
+            model_pre = load_biomedclip_model(
                 name = _MODEL_CKPT_PATHS[model_name],
                 precision=precision,
                 device=device,
