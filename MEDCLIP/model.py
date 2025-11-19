@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import numpy as np
 
 from .transformer import TimmModel, HFTextEncoder
+from transformer import Attention # Ensure Attention is imported
+#from .transformer import LayerNormFp32, LayerNorm, QuickGELU, Attention, VisionTransformer, TextTransformer
 
 @dataclass
 class BiomedCLIPVisionCfg:

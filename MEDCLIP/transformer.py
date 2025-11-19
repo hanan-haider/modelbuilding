@@ -21,6 +21,111 @@ to_2tuple = _ntuple(2)
 
 
 
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from typing import Optional
+
+
+class Attention(nn.Module):
+    def __init__(
+        self,
+        dim,
+        num_heads=12,                # BiomedCLIP ViT-B/16 uses 12 heads
+        qkv_bias=True,
+        scaled_cosine=False,
+        scale_heads=False,
+        logit_scale_max=math.log(1. / 0.01),
+        attn_drop=0.,
+        proj_drop=0.
+    ):
+        super().__init__()
+
+        assert dim % num_heads == 0, "dim must be divisible by num_heads"
+
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.scaled_cosine = scaled_cosine
+        self.scale_heads = scale_heads
+        self.scale = self.head_dim ** -0.5
+        self.logit_scale_max = logit_scale_max
+
+        # QKV projection (OpenCLIP style)
+        self.in_proj_weight = nn.Parameter(torch.randn(3 * dim, dim) * self.scale)
+        self.in_proj_bias = nn.Parameter(torch.zeros(3 * dim)) if qkv_bias else None
+
+        # logit scale (for cosine attention)
+        if scaled_cosine:
+            self.logit_scale = nn.Parameter(
+                torch.log(10 * torch.ones((num_heads, 1, 1)))
+            )
+        else:
+            self.logit_scale = None
+
+        # optional head scaling
+        if scale_heads:
+            self.head_scale = nn.Parameter(torch.ones((num_heads, 1, 1)))
+        else:
+            self.head_scale = None
+
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.out_proj = nn.Linear(dim, dim)
+        self.out_drop = nn.Dropout(proj_drop)
+
+    def forward(self, x, attn_mask: Optional[torch.Tensor] = None):
+        # x: (L, N, C)
+        L, N, C = x.shape
+
+        # project QKV
+        q, k, v = F.linear(x, self.in_proj_weight, self.in_proj_bias).chunk(3, dim=-1)
+
+        # reshape to (N * heads, L, head_dim)
+        q = q.reshape(L, N, self.num_heads, self.head_dim).permute(1, 2, 0, 3).reshape(N * self.num_heads, L, self.head_dim)
+        k = k.reshape(L, N, self.num_heads, self.head_dim).permute(1, 2, 0, 3).reshape(N * self.num_heads, L, self.head_dim)
+        v = v.reshape(L, N, self.num_heads, self.head_dim).permute(1, 2, 0, 3).reshape(N * self.num_heads, L, self.head_dim)
+
+        # cosine or scaled dot-product attention
+        if self.logit_scale is not None:
+            # cosine attention
+            q_norm = F.normalize(q, dim=-1)
+            k_norm = F.normalize(k, dim=-1)
+            attn = torch.bmm(q_norm, k_norm.transpose(-1, -2))
+
+            scale = torch.clamp(self.logit_scale, max=self.logit_scale_max).exp()
+            attn = attn.view(N, self.num_heads, L, L) * scale
+            attn = attn.view(N * self.num_heads, L, L)
+        else:
+            attn = torch.bmm(q * self.scale, k.transpose(-1, -2))
+
+        # optional mask
+        if attn_mask is not None:
+            if attn_mask.dtype == torch.bool:
+                m = torch.zeros_like(attn_mask, dtype=attn.dtype)
+                m.masked_fill_(attn_mask, float('-inf'))
+                attn_mask = m
+            attn = attn + attn_mask
+
+        attn = attn.softmax(dim=-1)
+        attn = self.attn_drop(attn)
+
+        # attention-output
+        out = torch.bmm(attn, v)
+
+        # per-head scaling
+        if self.head_scale is not None:
+            out = out.view(N, self.num_heads, L, self.head_dim) * self.head_scale
+            out = out.view(N * self.num_heads, L, self.head_dim)
+
+        # reshape back to (L, N, C)
+        out = out.view(N, self.num_heads, L, self.head_dim).permute(2, 0, 1, 3).reshape(L, N, C)
+
+        out = self.out_proj(out)
+        out = self.out_drop(out)
+        return out
+
+
+
 class TimmModel(nn.Module):
     """
     Timm-based Vision Transformer for BiomedCLIP.
