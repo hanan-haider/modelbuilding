@@ -10,7 +10,7 @@ from typing import List, Optional, Union
 import torch
 
 #from .model import build_model_from_openai_state_dict, convert_weights_to_lp, get_cast_dtype
-
+from .model import build_model_from_openai_state_dict
 from .model import get_cast_dtype
 
 
@@ -76,7 +76,7 @@ def load_biomedclip_model(
         # Build a non-jit model from the OpenAI jitted model state dict
         cast_dtype = get_cast_dtype(precision)
         try:
-            model = build_model_from_biomedclip_state_dictt(state_dict or model.state_dict(), cast_dtype=cast_dtype)
+            model = build_model_from_biomedclip_state_dict(state_dict or model.state_dict(), cast_dtype=cast_dtype)
         except KeyError:
             sd = {k[7:]: v for k, v in state_dict["state_dict"].items()}
             model = build_model_from_biomedclip_state_dict(sd, cast_dtype=cast_dtype)
