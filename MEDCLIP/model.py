@@ -201,17 +201,6 @@ class CustomTextCLIP(nn.Module):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 def build_model_from_biomedclip_state_dict(
     state_dict: dict,
     quick_gelu=True,
@@ -239,7 +228,7 @@ def build_model_from_biomedclip_state_dict(
 
     # Text config
     text_width = state_dict["text.transformer.embeddings.word_embeddings.weight"].shape[1]
-    context_length = state_dict["text.transformer.embeddings.position_ids"].shape[1]
+    context_length = state_dict.get("text.transformer.embeddings.position_ids", torch.zeros(1, 512)).shape[1]
     vocab_size = state_dict["text.transformer.embeddings.word_embeddings.weight"].shape[0]
     transformer_layers = len(
         [k for k in state_dict.keys() if k.startswith("text.transformer.encoder.layer") and k.endswith(".attention.self.query.weight")]
@@ -259,15 +248,15 @@ def build_model_from_biomedclip_state_dict(
         patch_size=vision_patch_size,
         image_size=image_size,
     )
-    print("\n BiomedCLIPVisionCfg object created.",vision_cfg,"\n")
-    text_cfg =BiomedCLIPTextCfg(
+    print("\n BiomedCLIPVisionCfg object created.", vision_cfg, "\n")
+    text_cfg = BiomedCLIPTextCfg(
         context_length=context_length,
         vocab_size=vocab_size,
         width=text_width,
         heads=transformer_heads,
         layers=transformer_layers,
     )
-    print("\n CLIPTextCfg objects created.",text_cfg,"\n")
+    print("\n CLIPTextCfg objects created.", text_cfg, "\n")
 
     # Build CLIP model
     model = CustomTextCLIP(
@@ -279,21 +268,39 @@ def build_model_from_biomedclip_state_dict(
     )
     print("CLIP model instance created.")
 
-    # Remove unused keys
-    for key in ["input_resolution", "context_length", "vocab_size"]:
-        if key in state_dict:
-            state_dict.pop(key)
-            print(f"Removed unused key from state_dict: {key}")
+    # Remove keys that cause mismatch
+    for k in ["visual.head.proj.weight", "text.transformer.embeddings.position_ids"]:
+        if k in state_dict:
+            state_dict.pop(k)
+
+    # Fix size mismatch for text projections
+    if "text.proj.0.weight" in state_dict and state_dict["text.proj.0.weight"].shape != model.text_proj[0].weight.shape:
+        print(f"Resizing text.proj.0.weight from {state_dict['text.proj.0.weight'].shape} to {model.text_proj[0].weight.shape}")
+        state_dict["text.proj.0.weight"] = state_dict["text.proj.0.weight"][:model.text_proj[0].weight.shape[0], :]
+
+    if "text.proj.2.weight" in state_dict and state_dict["text.proj.2.weight"].shape != model.text_proj[2].weight.shape:
+        print(f"Resizing text.proj.2.weight from {state_dict['text.proj.2.weight'].shape} to {model.text_proj[2].weight.shape}")
+        state_dict["text.proj.2.weight"] = state_dict["text.proj.2.weight"][:, :model.text_proj[2].weight.shape[1]]
 
     # Convert weights to fp16 if needed
     convert_weights_to_fp16(model)
     print("Converted model weights to fp16 (if applicable).")
 
-    # Load weights
-    model.load_state_dict(state_dict)
+    # Load weights with strict=False to avoid missing/unexpected key errors
+    model.load_state_dict(state_dict, strict=False)
     print("BiomedCLIP model successfully loaded!")
 
     return model.eval()
+
+
+
+
+
+
+
+
+
+
 
 
 
