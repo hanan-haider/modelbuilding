@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 import torch
 #from .model import CLIP, CustomTextCLIP, convert_weights_to_lp, convert_to_custom_text_state_dict, resize_pos_embed, get_cast_dtype
-#from .openai import load_openai_model
+from .microsoft import load_biomedclip_model
 
 
 #_MODEL_CONFIG_PATHS = [Path(__file__).parent / f"model_configs/"]
