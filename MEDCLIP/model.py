@@ -2,6 +2,7 @@ import torch
 from dataclasses import dataclass
 from typing import Union, Tuple, Optional
 from torch import nn
+from .transformer import TimmModel, HFTextEncoder
 
 @dataclass
 class BiomedCLIPVisionCfg:
