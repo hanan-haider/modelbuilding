@@ -84,6 +84,8 @@ def main():
   #for printing at the outset of training
 
     setup_seed(args.seed)
+
+    
     
     # fixed feature extractor
     clip_model = create_model(model_name=args.model_name, img_size=args.img_size, device=device, pretrained=args.pretrain, require_pretrained=True)
