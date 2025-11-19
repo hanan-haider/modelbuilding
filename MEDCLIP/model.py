@@ -184,7 +184,7 @@ def build_model_from_biomedclip_state_dict(
     print("\n CLIPTextCfg objects created.",text_cfg,"\n")
 
     # Build CLIP model
-    model = CLIP(
+    model = CustomTextCLIP(
         embed_dim,
         vision_cfg=vision_cfg,
         text_cfg=text_cfg,
