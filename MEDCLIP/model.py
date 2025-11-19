@@ -35,9 +35,9 @@ def build_model_from_biomedclip_state_dict(
     print("Starting BiomedCLIP model build from state_dict...")
     
     # Check if vision trunk exists
-    vit = "visual.trunk" in list(state_dict.keys())[0]  # BiomedCLIP uses visual.trunk
+    vit = any(k.startswith("visual.trunk") for k in state_dict.keys())  # Correct check
     print(f"Using ViT backbone: {vit}")
-
+    
     # Vision config
     if vit:
         vision_width = state_dict["visual.trunk.patch_embed.proj.weight"].shape[0]
@@ -48,6 +48,7 @@ def build_model_from_biomedclip_state_dict(
         print(f"Vision config -> width: {vision_width}, layers: {vision_layers}, patch_size: {vision_patch_size}, image_size: {image_size}")
     else:
         raise NotImplementedError("Non-ViT BiomedCLIP not supported")
+    
 
     # Text config
     context_length = state_dict["text.transformer.embeddings.position_ids"].shape[0] if "text.transformer.embeddings.position_ids" in state_dict else 256
