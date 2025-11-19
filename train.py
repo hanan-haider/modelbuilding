@@ -11,7 +11,7 @@ from scipy.ndimage import gaussian_filter
 #from dataset.medical_few import MedDataset
 from MEDCLIP.biomedclip import create_model
 #from CLIP.tokenizer import tokenize
-#from CLIP.adapter import CLIP_Inplanted
+from MEDCLIP.adapter import CLIP_Inplanted
 from PIL import Image
 from sklearn.metrics import roc_auc_score, precision_recall_curve, pairwise
 #from loss import FocalLoss, BinaryDiceLoss
@@ -87,7 +87,7 @@ def main():
     
     # fixed feature extractor
     clip_model = create_model(model_name=args.model_name, img_size=args.img_size, device=device, pretrained=args.pretrain, require_pretrained=True)
-    print(clip_model)
+    #print(clip_model)
     clip_model.eval()
 
     model = CLIP_Inplanted(clip_model=clip_model, features=args.features_list).to(device)
