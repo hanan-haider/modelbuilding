@@ -134,6 +134,8 @@ def create_model(
             )
             state_dict = model_pre.state_dict()
 
+            print("state_dict keys Hanan:", state_dict.keys())
+
             # to always output dict even if it is clip
             if output_dict and hasattr(model_pre, "output_dict"):
                 model_pre.output_dict = True
