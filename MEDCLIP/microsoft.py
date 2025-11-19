@@ -11,20 +11,12 @@ import torch
 
 #from .model import build_model_from_openai_state_dict, convert_weights_to_lp, get_cast_dtype
 
-def get_cast_dtype(precision: str):
-    cast_dtype = None
-    if precision == 'bf16':
-        cast_dtype = torch.bfloat16
-    elif precision == 'fp16':
-        cast_dtype = torch.float16
-    return cast_dtype
+from .model import get_cast_dtype
 
 
 
 
-
-
-#get_cast_dtype, 
+ 
 
 __all__ = ["list_openai_models", "load_openai_model"]
 
