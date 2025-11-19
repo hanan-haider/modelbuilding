@@ -64,7 +64,21 @@ def main():
     parser.add_argument('--seed', type=int, default=111)
     parser.add_argument('--shot', type=int, default=4)
     parser.add_argument('--iterate', type=int, default=0)
-    args = parser.parse_args()
+
+    #args = parser.parse_args()
+#printing the arguments 
+    args, _ = parser.parse_known_args()
+
+    # Print all arguments
+    print("\nParsed Arguments:")
+    for arg in vars(args):
+        print(f"  {arg}: {getattr(args, arg)}")
+        global_vars[arg] = getattr(args, arg)  # Store each argument in global_vars
+    
+    # Set up seed
+    setup_seed(args.seed)
+    print("\nSeed set to:", args.seed)
+  #for printing at the outset of training
 
     setup_seed(args.seed)
     
