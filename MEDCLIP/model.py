@@ -1,6 +1,7 @@
 import torch
 from dataclasses import dataclass
 from typing import Union, Tuple, Optional
+from torch import nn
 
 @dataclass
 class BiomedCLIPVisionCfg:
