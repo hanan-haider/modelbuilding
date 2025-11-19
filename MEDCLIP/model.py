@@ -94,7 +94,7 @@ def build_model_from_biomedclip_state_dict(
     print(f"Embed dim (from visual.head.proj.weight): {embed_dim}")
 
     # Create configs
-    vision_cfg = CLIPVisionCfg(
+    vision_cfg = BiomedCLIPVisionCfg(
         layers=vision_layers,
         width=vision_width,
         patch_size=vision_patch_size,
