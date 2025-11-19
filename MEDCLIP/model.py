@@ -54,7 +54,7 @@ class BiomedCLIPTextCfg:
    
 def _build_vision_tower(
         embed_dim: int,
-        vision_cfg: CLIPVisionCfg,
+        vision_cfg: BiomedCLIPVisionCfg,
         quick_gelu: bool = False,
         cast_dtype: Optional[torch.dtype] = None
     ):
@@ -95,7 +95,7 @@ def _build_vision_tower(
 
 def _build_text_tower(
         embed_dim: int,
-        text_cfg: CLIPTextCfg,
+        text_cfg: BiomedCLIPTextCfg,
         quick_gelu: bool = False,
         cast_dtype: Optional[torch.dtype] = None,
 ):
