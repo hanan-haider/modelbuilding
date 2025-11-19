@@ -200,7 +200,6 @@ class CustomTextCLIP(nn.Module):
 
 
 
-
 def build_model_from_biomedclip_state_dict(
     state_dict: dict,
     quick_gelu=True,
@@ -228,7 +227,7 @@ def build_model_from_biomedclip_state_dict(
 
     # Text config
     text_width = state_dict["text.transformer.embeddings.word_embeddings.weight"].shape[1]
-    context_length = state_dict.get("text.transformer.embeddings.position_ids", torch.zeros(1, 512)).shape[1]
+    context_length = state_dict["text.transformer.embeddings.position_ids"].shape[1]
     vocab_size = state_dict["text.transformer.embeddings.word_embeddings.weight"].shape[0]
     transformer_layers = len(
         [k for k in state_dict.keys() if k.startswith("text.transformer.encoder.layer") and k.endswith(".attention.self.query.weight")]
@@ -241,7 +240,7 @@ def build_model_from_biomedclip_state_dict(
     embed_dim = state_dict["visual.head.proj.weight"].shape[0]
     print(f"Embed dim (from visual.head.proj.weight): {embed_dim}")
 
-    # Create configs
+    # Create configs with BiomedCLIP-specific settings
     vision_cfg = BiomedCLIPVisionCfg(
         layers=vision_layers,
         width=vision_width,
@@ -249,12 +248,15 @@ def build_model_from_biomedclip_state_dict(
         image_size=image_size,
     )
     print("\n BiomedCLIPVisionCfg object created.", vision_cfg, "\n")
+    
     text_cfg = BiomedCLIPTextCfg(
         context_length=context_length,
         vocab_size=vocab_size,
         width=text_width,
         heads=transformer_heads,
         layers=transformer_layers,
+        proj='mlp',  # BiomedCLIP uses MLP projection
+        pooler_type='cls_last_hidden_state_pooler',  # Specify pooler type
     )
     print("\n CLIPTextCfg objects created.", text_cfg, "\n")
 
@@ -268,32 +270,45 @@ def build_model_from_biomedclip_state_dict(
     )
     print("CLIP model instance created.")
 
-    # Remove keys that cause mismatch
-    for k in ["visual.head.proj.weight", "text.transformer.embeddings.position_ids"]:
-        if k in state_dict:
-            state_dict.pop(k)
-
-    # Fix size mismatch for text projections
-    if "text.proj.0.weight" in state_dict and state_dict["text.proj.0.weight"].shape != model.text_proj[0].weight.shape:
-        print(f"Resizing text.proj.0.weight from {state_dict['text.proj.0.weight'].shape} to {model.text_proj[0].weight.shape}")
-        state_dict["text.proj.0.weight"] = state_dict["text.proj.0.weight"][:model.text_proj[0].weight.shape[0], :]
-
-    if "text.proj.2.weight" in state_dict and state_dict["text.proj.2.weight"].shape != model.text_proj[2].weight.shape:
-        print(f"Resizing text.proj.2.weight from {state_dict['text.proj.2.weight'].shape} to {model.text_proj[2].weight.shape}")
-        state_dict["text.proj.2.weight"] = state_dict["text.proj.2.weight"][:, :model.text_proj[2].weight.shape[1]]
+    # ===== KEY FIX: Remap BiomedCLIP keys to match model architecture =====
+    new_state_dict = {}
+    
+    for key, value in state_dict.items():
+        new_key = key
+        
+        # Fix 1: Remap visual projection key
+        if key == "visual.head.proj.weight":
+            new_key = "visual.proj.weight"
+            print(f"Remapping: {key} -> {new_key}")
+        
+        # Fix 2: Skip position_ids (it's a buffer, will be created automatically)
+        elif key == "text.transformer.embeddings.position_ids":
+            print(f"Skipping buffer: {key}")
+            continue
+        
+        new_state_dict[new_key] = value
+    
+    # Remove unused keys
+    for key in ["input_resolution", "context_length", "vocab_size"]:
+        if key in new_state_dict:
+            new_state_dict.pop(key)
+            print(f"Removed unused key from state_dict: {key}")
 
     # Convert weights to fp16 if needed
     convert_weights_to_fp16(model)
     print("Converted model weights to fp16 (if applicable).")
 
-    # Load weights with strict=False to avoid missing/unexpected key errors
-    model.load_state_dict(state_dict, strict=False)
+    # Load weights with strict=False to handle minor mismatches
+    incompatible_keys = model.load_state_dict(new_state_dict, strict=False)
+    
+    if incompatible_keys.missing_keys:
+        print(f"⚠️ Missing keys: {incompatible_keys.missing_keys}")
+    if incompatible_keys.unexpected_keys:
+        print(f"⚠️ Unexpected keys: {incompatible_keys.unexpected_keys}")
+    
     print("BiomedCLIP model successfully loaded!")
 
     return model.eval()
-
-
-
 
 
 
