@@ -2,6 +2,9 @@ import torch
 from dataclasses import dataclass
 from typing import Union, Tuple, Optional
 from torch import nn
+import torch.nn.functional as F
+import numpy as np
+
 from .transformer import TimmModel, HFTextEncoder
 
 @dataclass
