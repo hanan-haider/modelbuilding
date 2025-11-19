@@ -120,6 +120,7 @@ def build_model_from_biomedclip_state_dict(
         patch_size=vision_patch_size,
         image_size=image_size,
     )
+    print("\n BiomedCLIPVisionCfg object created.",vision_cfg,"\n")
     text_cfg = CLIPTextCfg(
         context_length=context_length,
         vocab_size=vocab_size,
@@ -127,7 +128,7 @@ def build_model_from_biomedclip_state_dict(
         heads=transformer_heads,
         layers=transformer_layers,
     )
-    print("CLIPVisionCfg and CLIPTextCfg objects created.")
+    print("\n CLIPTextCfg objects created.",text_cfg,"\n")
 
     # Build CLIP model
     model = CLIP(
