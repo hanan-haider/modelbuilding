@@ -295,48 +295,47 @@ def build_model_from_biomedclip_state_dict(
 
     return model.eval()
 
+
+
+
 def convert_weights_to_lp(model: nn.Module, dtype=torch.float16):
     """Convert applicable model parameters to low-precision (bf16 or fp16) safely for BiomedCLIP."""
 
     def _convert_weights(module):
         # Convert Conv/Linear weights and biases
         if isinstance(module, (nn.Conv1d, nn.Conv2d, nn.Linear)):
-            with torch.no_grad():
-                module.weight = nn.Parameter(module.weight.to(dtype))
-                if module.bias is not None:
-                    module.bias = nn.Parameter(module.bias.to(dtype))
+            if hasattr(module, "weight") and module.weight is not None:
+                module.weight.data = module.weight.data.to(dtype)
+            if hasattr(module, "bias") and module.bias is not None:
+                module.bias.data = module.bias.data.to(dtype)
 
         # Convert LayerNorm weights and biases
         if isinstance(module, (nn.LayerNorm, nn.BatchNorm1d, nn.BatchNorm2d)):
-            with torch.no_grad():
-                if hasattr(module, "weight") and module.weight is not None:
-                    module.weight = nn.Parameter(module.weight.to(dtype))
-                if hasattr(module, "bias") and module.bias is not None:
-                    module.bias = nn.Parameter(module.bias.to(dtype))
+            if hasattr(module, "weight") and module.weight is not None:
+                module.weight.data = module.weight.data.to(dtype)
+            if hasattr(module, "bias") and module.bias is not None:
+                module.bias.data = module.bias.data.to(dtype)
 
         # Convert custom Attention parameters
         if isinstance(module, Attention):
-            with torch.no_grad():
-                # QKV weights
-                for attr in ["in_proj_weight", "in_proj_bias", "logit_scale", "head_scale"]:
-                    if hasattr(module, attr):
-                        tensor = getattr(module, attr)
-                        if tensor is not None:
-                            setattr(module, attr, nn.Parameter(tensor.to(dtype)))
-                # Output projection
-                if hasattr(module, "out_proj") and module.out_proj is not None:
-                    module.out_proj.weight = nn.Parameter(module.out_proj.weight.to(dtype))
-                    if module.out_proj.bias is not None:
-                        module.out_proj.bias = nn.Parameter(module.out_proj.bias.to(dtype))
+            for attr in ["in_proj_weight", "in_proj_bias", "logit_scale", "head_scale"]:
+                if hasattr(module, attr):
+                    tensor = getattr(module, attr)
+                    if isinstance(tensor, torch.Tensor):
+                        tensor.data = tensor.data.to(dtype)
+            if hasattr(module, "out_proj") and module.out_proj is not None:
+                module.out_proj.weight.data = module.out_proj.weight.data.to(dtype)
+                if module.out_proj.bias is not None:
+                    module.out_proj.bias.data = module.out_proj.bias.data.to(dtype)
 
-        # Convert any named projections for CLIP/BiomedCLIP heads
+        # Convert named projections for CLIP/BiomedCLIP heads
         for name in ["text_projection", "proj", "logit_scale"]:
             if hasattr(module, name):
                 tensor = getattr(module, name)
-                if tensor is not None:
-                    setattr(module, name, nn.Parameter(tensor.to(dtype)))
+                if isinstance(tensor, torch.Tensor):
+                    tensor.data = tensor.data.to(dtype)
 
     model.apply(_convert_weights)
 
 
-convert_weights_to_fp16 = convert_weights_to_lp  # backward compatibility
+convert_weights_to_fp16 = convert_weights_to_lp
