@@ -8,15 +8,15 @@ from torch import nn
 from torch.nn import functional as F
 from tqdm import tqdm
 from scipy.ndimage import gaussian_filter
-from dataset.medical_few import MedDataset
+#from dataset.medical_few import MedDataset
 from CLIP.clip import create_model
-from CLIP.tokenizer import tokenize
-from CLIP.adapter import CLIP_Inplanted
+#from CLIP.tokenizer import tokenize
+#from CLIP.adapter import CLIP_Inplanted
 from PIL import Image
 from sklearn.metrics import roc_auc_score, precision_recall_curve, pairwise
-from loss import FocalLoss, BinaryDiceLoss
-from utils import augment, cos_sim, encode_text_with_prompt_ensemble
-from prompt import REAL_NAME
+#from loss import FocalLoss, BinaryDiceLoss
+#from utils import augment, cos_sim, encode_text_with_prompt_ensemble
+#from prompt import REAL_NAME
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import warnings
