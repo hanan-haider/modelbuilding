@@ -157,9 +157,14 @@ def main():
                 image_label = label.to(device)
                 for layer in range(len(det_patch_tokens)):
                     det_patch_tokens[layer] = det_patch_tokens[layer] / det_patch_tokens[layer].norm(dim=-1, keepdim=True)
-                    vision_proj = model.visual.proj  # 768 -> 512
+                    vision_proj = model.visual_proj  # 768 -> 512
+
+                 
+
+           
                     proj_tokens = det_patch_tokens[layer] @ vision_proj.weight.T  # now shape (196 × 512)
                     anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(0)
+
                     #anomaly_map = (100.0 * det_patch_tokens[layer] @ text_features).unsqueeze(0)    
                     anomaly_map = torch.softmax(anomaly_map, dim=-1)[:, :, 1]
                     anomaly_score = torch.mean(anomaly_map, dim=-1)
@@ -172,7 +177,8 @@ def main():
                     mask[mask > 0.5], mask[mask <= 0.5] = 1, 0
                     for layer in range(len(seg_patch_tokens)):
                         seg_patch_tokens[layer] = seg_patch_tokens[layer] / seg_patch_tokens[layer].norm(dim=-1, keepdim=True)
-                        vision_proj = model.visual.proj  # 768 -> 512
+                        
+                        vision_proj = model.visual_proj  # 768 -> 512
                         #proj_tokens = seg_patch_tokens[layer] @ vision_proj.T  # now shape (196 × 512)
                         proj_tokens = det_patch_tokens[layer] @ vision_proj.weight.T
                         anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(0)
