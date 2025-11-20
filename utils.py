@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 import kornia as K
 from PIL import Image
-from CLIP.tokenizer import tokenize
+from MEDCLIP.tokenizer import tokenize
 
 
 def encode_text_with_prompt_ensemble(model, obj, device):
