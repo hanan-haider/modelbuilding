@@ -109,23 +109,6 @@ def main():
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, **kwargs)
 
 
-'''
-    # Initialize counters
-    total_images = 0
-    total_masks = 0
-    total_gt = 0
-
-    # Loop through the test loader
-    for (image, y, mask) in tqdm(test_loader, desc="Counting test data"):
-        batch_size = image.size(0)  # Number of samples in current batch
-        total_images += batch_size
-        total_masks += mask.size(0)
-        total_gt += y.size(0)
-
-    print("\n📊 Dataset Summary:")
-    print(f"Total Images: {total_images}")
-    print(f"Total Masks:  {total_masks}")
-    print(f"Total Ground Truth (y): {total_gt}")'''
 
     # few-shot image augmentation
     augment_abnorm_img, augment_abnorm_mask = augment(test_dataset.fewshot_abnorm_img, test_dataset.fewshot_abnorm_mask)
@@ -138,26 +121,6 @@ def main():
 
     train_dataset = torch.utils.data.TensorDataset(augment_fewshot_img, augment_fewshot_mask, augment_fewshot_label)
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True, **kwargs)
-
-
-    
-'''
-    # Initialize counters
-    total_images = 0
-    total_masks = 0
-    total_gt = 0
-
-    # Loop through the test loader
-    for (image, y, mask) in tqdm(train_loader, desc="Counting test data"):
-        batch_size = image.size(0)  # Number of samples in current batch
-        total_images += batch_size
-        total_masks += mask.size(0)
-        total_gt += y.size(0)
-
-    print("\n📊 Dataset Summary:")
-    print(f"Total Images: {total_images}")
-    print(f"Total Masks:  {total_masks}")
-    print(f"Total Ground Truth (y): {total_gt}")'''
 
 
 
