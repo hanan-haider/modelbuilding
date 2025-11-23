@@ -37,52 +37,6 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-class CLIP_Inplanted(nn.Module):
-    def __init__(self, clip_model, features):
-        super(CLIP_Inplanted, self).__init__()
-        self.clip_model = clip_model
-        self.features = features
-        self.seg_adapters = nn.ModuleList([nn.Linear(512, 512) for _ in features])  # embed_dim=512 for BiomedCLIP
-        self.det_adapters = nn.ModuleList([nn.Linear(512, 512) for _ in features])
-        self.dropout = nn.Dropout(0.1)  # Dropout for regularization
-
-    def forward(self, x):
-        # NEW: Hook into timm ViT structure: model.visual.trunk.transformer.resblocks
-        features = []
-        def hook_fn(module, input, output):
-            features.append(output)  # output shape: (B, L+1, C) for layer
-
-        # Register hooks on selected layers (0-based index: features=[9,10,11,12] → resblocks[8:12])
-        handles = []
-        for feat_idx in self.features:
-            if feat_idx - 1 < len(self.clip_model.visual.trunk.transformer.resblocks):  # 0-based
-                handle = self.clip_model.visual.trunk.transformer.resblocks[feat_idx - 1].register_forward_hook(hook_fn)
-                handles.append(handle)
-
-        # Forward pass to trigger hooks
-        _ = self.clip_model.encode_image(x)
-
-        # Remove hooks
-        for h in handles:
-            h.remove()
-
-        # Apply adapters to patch tokens (remove CLS token: [:, 1:, :])
-        seg_out = []
-        det_out = []
-        for i, feat in enumerate(features):
-            patch_tokens = feat[:, 1:, :]  # Remove CLS token: (B, L, C=768)
-            # Project to 512 if needed (BiomedCLIP proj)
-            if hasattr(self.clip_model.visual, 'proj'):
-                proj_tokens = F.linear(patch_tokens, self.clip_model.visual.proj.weight, self.clip_model.visual.proj.bias)
-            else:
-                proj_tokens = patch_tokens  # Already 512?
-
-            seg_proj = self.dropout(self.seg_adapters[i](proj_tokens))
-            det_proj = self.dropout(self.det_adapters[i](proj_tokens))
-            seg_out.append(seg_proj)
-            det_out.append(det_proj)
-
-        return None, seg_out, det_out
 
 def main():
     parser = argparse.ArgumentParser(description='BiomedCLIP Testing')
