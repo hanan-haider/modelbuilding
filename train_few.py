@@ -62,6 +62,8 @@ def main():
                         help="BiomedCLIP trained with 224x224 resolution")
     parser.add_argument("--epoch", type=int, default=50)
     parser.add_argument("--learning_rate", type=float, default=0.001)
+
+    
     parser.add_argument("--features_list", type=int, nargs="+", default=[3, 6, 9, 12],
                         help="layer features used for adapters")    
     parser.add_argument('--seed', type=int, default=111)
@@ -89,7 +91,7 @@ def main():
     
     # fixed feature extractor
     clip_model = create_model(model_name=args.model_name, img_size=args.img_size, device=device, pretrained=args.pretrain, require_pretrained=True)
-    #print(clip_model)
+    print(clip_model)
     clip_model.eval()
 
     model = CLIP_Inplanted(clip_model=clip_model, features=args.features_list).to(device)
