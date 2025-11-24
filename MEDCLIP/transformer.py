@@ -3,6 +3,10 @@ import torch
 from typing import Optional, Tuple, Union
 import collections.abc
 from itertools import repeat
+import math
+import torch
+import torch.nn.functional as F
+from typing import Optional
 
 
 
@@ -21,11 +25,6 @@ to_2tuple = _ntuple(2)
 
 
 
-import math
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from typing import Optional
 
 
 class Attention(nn.Module):
