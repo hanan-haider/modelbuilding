@@ -166,10 +166,10 @@ def main():
                     
                     vision_proj = model.visual_proj  # 768 -> 512
                     proj_tokens = det_patch_tokens[layer] @ vision_proj.weight.T
-                    anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(1)
+                    anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(0)
                     anomaly_map = torch.softmax(anomaly_map, dim=-1)[:, :, 1]
                     anomaly_score = torch.mean(anomaly_map, dim=-1)
-                    anomaly_score = anomaly_score.squeeze()
+                    
                     label = label.squeeze().float()
 
                     det_loss += loss_bce(anomaly_score, label)
