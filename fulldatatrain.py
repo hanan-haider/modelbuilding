@@ -159,7 +159,7 @@ def main():
                 seg_patch_tokens = [p[0, 1:, :] for p in seg_patch_tokens]
                 det_patch_tokens = [p[0, 1:, :] for p in det_patch_tokens]
                 
-                # Detection loss
+                  # Detection loss
                 det_loss = 0
                 for layer in range(len(det_patch_tokens)):
                     det_patch_tokens[layer] = det_patch_tokens[layer] / (det_patch_tokens[layer].norm(dim=-1, keepdim=True) + 1e-8)
@@ -171,6 +171,11 @@ def main():
                     anomaly_score = torch.mean(anomaly_map, dim=-1)
                     
                     label = label.squeeze().float()
+                    
+                    # --------- FIX SHAPES FOR BCE ---------
+                    anomaly_score = anomaly_score.view(1).float()     # ensure [1]
+                    label = label.float().view(1)                     # ensure [1]
+                    #   --------------------------------------
 
                     det_loss += loss_bce(anomaly_score, label)
                     #det_loss += loss_bce(anomaly_score, label.float())
