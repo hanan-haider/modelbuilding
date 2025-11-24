@@ -188,6 +188,9 @@ def main():
                         vision_proj = model.visual_proj
                         proj_tokens = seg_patch_tokens[layer] @ vision_proj.weight.T
                         anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(1)
+                        print("anomaly_map shape:", anomaly_map.shape)
+                        exit()
+
                         
                         B, L, C = anomaly_map.shape
                         H = int(np.sqrt(L))
