@@ -156,8 +156,8 @@ def main():
                 _, seg_patch_tokens, det_patch_tokens = model(image)
                 
                 # Extract patch tokens (remove CLS token)
-                seg_patch_tokens = [p[:, 1:, :] for p in seg_patch_tokens]
-                det_patch_tokens = [p[:, 1:, :] for p in det_patch_tokens]
+                seg_patch_tokens = [p[0, 1:, :] for p in seg_patch_tokens]
+                det_patch_tokens = [p[0, 1:, :] for p in det_patch_tokens]
                 
                 # Detection loss
                 det_loss = 0
