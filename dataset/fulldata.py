@@ -412,7 +412,7 @@ class FewShotMedDataset(Dataset):
     def __len__(self):
         return len(self.x)
 
-''''
+'''
 # Example usage
 if __name__ == "__main__":
     # For full data training
@@ -458,4 +458,6 @@ if __name__ == "__main__":
     for batch in train_loader:
         images, labels, masks = batch
         print(f"Batch shape - Images: {images.shape}, Labels: {labels.shape}, Masks: {masks.shape}")
-        break''''
+        break
+        
+'''
