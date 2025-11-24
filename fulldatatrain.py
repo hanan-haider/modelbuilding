@@ -169,7 +169,11 @@ def main():
                     anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(1)
                     anomaly_map = torch.softmax(anomaly_map, dim=-1)[:, :, 1]
                     anomaly_score = torch.mean(anomaly_map, dim=-1)
-                    det_loss += loss_bce(anomaly_score, label.float())
+                    anomaly_score = anomaly_score.squeeze()
+                    label = label.squeeze().float()
+
+                    det_loss += loss_bce(anomaly_score, label)
+                    #det_loss += loss_bce(anomaly_score, label.float())
 
                 if CLASS_INDEX[args.obj] > 0:
                     # Segmentation loss
