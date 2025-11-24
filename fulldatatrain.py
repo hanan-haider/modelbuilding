@@ -171,7 +171,7 @@ def main():
                     anomaly_score = torch.mean(anomaly_map, dim=-1)
                     
                     label = label.squeeze().float()
-                    
+
                     # --------- FIX SHAPES FOR BCE ---------
                     anomaly_score = anomaly_score.view(1).float()     # ensure [1]
                     label = label.float().view(1)                     # ensure [1]
@@ -194,7 +194,7 @@ def main():
                         proj_tokens = seg_patch_tokens[layer] @ vision_proj.weight.T
                         anomaly_map = (100.0 * proj_tokens @ text_features).unsqueeze(1)
                         print("anomaly_map shape:", anomaly_map.shape)
-                        exit()
+                   
 
                         
                         B, L, C = anomaly_map.shape
